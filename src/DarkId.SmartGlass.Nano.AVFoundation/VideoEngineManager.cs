@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using AppKit;
 using AVFoundation;
 using CoreAnimation;
+using CoreGraphics;
 using CoreMedia;
 using DarkId.SmartGlass.Nano.Consumer;
 using DarkId.SmartGlass.Nano.Packets;
@@ -28,8 +30,29 @@ namespace DarkId.SmartGlass.Nano.AVFoundation
 
         private void InitDisplayLayer()
         {
+            Debug.WriteLine("Initializing DisplayLayer");
             _displayLayer = new AVSampleBufferDisplayLayer();
-            //TODO: ViewController.setDisplayLayer()
+        }
+
+        public void SetView(NSView view)
+        {
+            if(_displayLayer == null)
+            {
+                throw new Exception("AVSampleBufferDisplayLayer not initialized yet");
+            }
+            Debug.WriteLine("SetView DisplayLayer");
+            _displayLayer.Bounds = view.Bounds;
+            _displayLayer.Frame = view.Frame;
+            _displayLayer.BackgroundColor = NSColor.Black.CGColor;
+            _displayLayer.Position = new CGPoint(view.Bounds.GetMidX(),
+                                                 view.Bounds.GetMidY());
+            _displayLayer.VideoGravity = "ResizeAspect";
+
+            // Remove from previous view if exists
+            _displayLayer.RemoveFromSuperLayer();
+
+            view.Layer.AddSublayer(_displayLayer);
+
         }
 
         public int EnqueueH264Nalu(CMBlockBuffer naluData)
@@ -63,7 +86,7 @@ namespace DarkId.SmartGlass.Nano.AVFoundation
         public int ConsumeVideoData(long timestamp, byte[] frameData)
         {
             // Source: https://mobisoftinfotech.com/resources/mguide/h264-encode-decode-using-videotoolbox/
-
+            Debug.WriteLine("Consuming VideoData");
             int frameSize = frameData.Length;
 
             // I know how my H.264 data source's NALUs looks like so I know start code index is always 0.
@@ -205,6 +228,8 @@ namespace DarkId.SmartGlass.Nano.AVFoundation
                     Debug.WriteLine($"BlockBufferCreation IFrame failed, err: {blockBufErr}");
                     return 3;
                 }
+
+                EnqueueH264Nalu(blockBuf);
             }
             return 0;
         }

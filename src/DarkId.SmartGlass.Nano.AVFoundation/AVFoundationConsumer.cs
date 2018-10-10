@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using AppKit;
 using AVFoundation;
 using DarkId.SmartGlass.Nano.Consumer;
 using DarkId.SmartGlass.Nano.Packets;
@@ -8,6 +9,7 @@ namespace DarkId.SmartGlass.Nano.AVFoundation
 {
     public class AVFoundationConsumer : IConsumer, IDisposable
     {
+        NSView _view;
         VideoAssembler _videoAssembler;
         AudioEngineManager _audioEngineManager;
         VideoEngineManager _videoEngineManager;
@@ -17,16 +19,21 @@ namespace DarkId.SmartGlass.Nano.AVFoundation
             _videoAssembler = new VideoAssembler();
         }
 
+        public void SetView(NSView view)
+        {
+            _view = view;
+        }
+
         public void ConsumeAudioData(AudioData data)
         {
-            _audioEngineManager.ConsumeAudioData(data);
+            //_audioEngineManager.ConsumeAudioData(data);
         }
 
         public void ConsumeAudioFormat(AudioFormat format)
         {
             try
             {
-                _audioEngineManager = new AudioEngineManager(format);
+                //_audioEngineManager = new AudioEngineManager(format);
             }
             catch (Exception e)
             {
@@ -48,6 +55,7 @@ namespace DarkId.SmartGlass.Nano.AVFoundation
             try
             {
                 _videoEngineManager = new VideoEngineManager(format);
+                _videoEngineManager.SetView(_view);
             }
             catch (Exception e)
             {
