@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using AppKit;
 using Foundation;
@@ -16,7 +17,6 @@ namespace DarkId.SmartGlass.Nano.macOS
         {
             base.ViewDidLoad();
             _player = new AVPlayer();
-            _player.SetView(this.View);
             Task.Run(() => _player.CreateClient());
         }
 

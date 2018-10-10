@@ -9,19 +9,18 @@ namespace DarkId.SmartGlass.Nano.AVFoundation
 {
     public class AVFoundationConsumer : IConsumer, IDisposable
     {
-        NSView _view;
         VideoAssembler _videoAssembler;
         AudioEngineManager _audioEngineManager;
         VideoEngineManager _videoEngineManager;
 
+        public VideoEngineManager VideoEngineManager
+        {
+            get => _videoEngineManager;
+        }
+
         public AVFoundationConsumer()
         {
             _videoAssembler = new VideoAssembler();
-        }
-
-        public void SetView(NSView view)
-        {
-            _view = view;
         }
 
         public void ConsumeAudioData(AudioData data)
@@ -55,7 +54,6 @@ namespace DarkId.SmartGlass.Nano.AVFoundation
             try
             {
                 _videoEngineManager = new VideoEngineManager(format);
-                _videoEngineManager.SetView(_view);
             }
             catch (Exception e)
             {

@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Threading.Tasks;
 using AppKit;
+using CoreGraphics;
 using DarkId.SmartGlass.Nano.AVFoundation;
 using Foundation;
 
@@ -9,6 +10,7 @@ namespace DarkId.SmartGlass.Nano.macOS
 {
     public class AVPlayer : NSObject
     {
+        public bool viewInitialized { get; private set; }
         private static readonly string _hostname = "10.0.0.241";
         private SmartGlassClient _smartGlassClient;
         private NanoClient _nanoClient;
@@ -17,11 +19,32 @@ namespace DarkId.SmartGlass.Nano.macOS
         public AVPlayer() : base()
         {
             _avConsumer = new AVFoundationConsumer();
+            viewInitialized = false;
         }
 
         public void SetView(NSView view)
         {
-            _avConsumer.SetView(view);
+            if (_avConsumer.VideoEngineManager == null ||
+                _avConsumer.VideoEngineManager.DisplayLayer == null)
+            {
+                Debug.WriteLine("DisplayLayer not ready yet");
+                return;
+            }
+
+            var displayLayer = _avConsumer.VideoEngineManager.DisplayLayer;
+            Debug.WriteLine("SetView DisplayLayer");
+            displayLayer.Bounds = view.Bounds;
+            displayLayer.Frame = view.Frame;
+            displayLayer.BackgroundColor = NSColor.Black.CGColor;
+            displayLayer.Position = new CGPoint(view.Bounds.GetMidX(),
+                                                 view.Bounds.GetMidY());
+            displayLayer.VideoGravity = "ResizeAspect";
+
+            // Remove from previous view if exists
+            displayLayer.RemoveFromSuperLayer();
+
+            view.Layer.AddSublayer(displayLayer);
+            viewInitialized = true;
         }
 
         public async Task CreateClient()

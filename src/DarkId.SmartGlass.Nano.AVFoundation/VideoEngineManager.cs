@@ -18,6 +18,11 @@ namespace DarkId.SmartGlass.Nano.AVFoundation
         private CMVideoFormatDescription _videoFormatDescription;
         private AVSampleBufferDisplayLayer _displayLayer;
 
+        public AVSampleBufferDisplayLayer DisplayLayer
+        {
+            get => _displayLayer;
+        }
+
         public VideoEngineManager(VideoFormat format)
         {
             if (format.Codec != VideoCodec.H264)
@@ -32,27 +37,6 @@ namespace DarkId.SmartGlass.Nano.AVFoundation
         {
             Debug.WriteLine("Initializing DisplayLayer");
             _displayLayer = new AVSampleBufferDisplayLayer();
-        }
-
-        public void SetView(NSView view)
-        {
-            if(_displayLayer == null)
-            {
-                throw new Exception("AVSampleBufferDisplayLayer not initialized yet");
-            }
-            Debug.WriteLine("SetView DisplayLayer");
-            _displayLayer.Bounds = view.Bounds;
-            _displayLayer.Frame = view.Frame;
-            _displayLayer.BackgroundColor = NSColor.Black.CGColor;
-            _displayLayer.Position = new CGPoint(view.Bounds.GetMidX(),
-                                                 view.Bounds.GetMidY());
-            _displayLayer.VideoGravity = "ResizeAspect";
-
-            // Remove from previous view if exists
-            _displayLayer.RemoveFromSuperLayer();
-
-            view.Layer.AddSublayer(_displayLayer);
-
         }
 
         public int EnqueueH264Nalu(CMBlockBuffer naluData)
