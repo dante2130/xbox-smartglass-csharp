@@ -62,8 +62,6 @@ namespace DarkId.SmartGlass.Nano.Android
 
         public void OnSurfaceTextureAvailable(SurfaceTexture surface, int width, int height)
         {
-            Task.Run(() => StartStream());
-
             MediaFormat format = MediaFormat.CreateVideoFormat(
                 mime: MediaFormat.MimetypeVideoAvc,
                 width: 1280,
@@ -75,23 +73,16 @@ namespace DarkId.SmartGlass.Nano.Android
 
             format.SetInteger(MediaFormat.KeyMaxInputSize, 100000);
 
-            try
-            {
-                _mcodec = MediaCodec.CreateDecoderByType(
-                                                MediaFormat.MimetypeVideoAvc);
+            _mcodec = MediaCodec.CreateDecoderByType(
+                                            MediaFormat.MimetypeVideoAvc);
 
-                _mcodec.Configure(format: format,
-                                  surface: new Surface(_surface.SurfaceTexture),
-                                  crypto: null,
-                                  flags: MediaCodecConfigFlags.None);
+            _mcodec.Configure(format: format,
+                              surface: new Surface(_surface.SurfaceTexture),
+                              crypto: null,
+                              flags: MediaCodecConfigFlags.None);
 
-                _mcodec.Start();
-                Task.Run(() => VideoDecodeTask());
-            }
-            catch (Java.Lang.Exception e)
-            {
-                e.PrintStackTrace();
-            };
+            _mcodec.Start();
+            Task.Run(() => StartStream());
         }
 
         public bool OnSurfaceTextureDestroyed(SurfaceTexture surface)
@@ -122,13 +113,22 @@ namespace DarkId.SmartGlass.Nano.Android
             _nanoClient.Initialize();
 
             System.Diagnostics.Debug.WriteLine($"Nano connected and running.");
+
+            VideoDecodeTask();
         }
 
-        public Task VideoDecodeTask()
+        public void VideoDecodeTask()
         {
             while (true)
             {
-                byte[] frame = _videoFrameQueue.Dequeue();
+                byte[] frame;
+                bool success =_videoFrameQueue.TryDequeue(out frame);
+
+                if (!success)
+                {
+                    System.Threading.Thread.Sleep(200);
+                    continue;
+                }
 
                 // Now we need to give it to the Codec to decode into the surface
 
