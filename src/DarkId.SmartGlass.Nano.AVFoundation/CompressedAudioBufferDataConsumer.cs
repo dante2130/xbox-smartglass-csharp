@@ -22,8 +22,8 @@ namespace DarkId.SmartGlass.Nano.AVFoundation
 
         public CompressedAudioBufferDataConsumer(AudioStreamBasicDescription format)
         {
-            _sampleBuffer = Marshal.AllocHGlobal(BUFFER_SIZE);
             _sampleQueue = new Queue<AudioData>();
+            _pcmConsumer = new PcmAudioBufferDataConsumer();
             _converter = AudioConverter.Create(
                 format,
                 AudioStreamBasicDescription.CreateLinearPCM());
@@ -34,8 +34,7 @@ namespace DarkId.SmartGlass.Nano.AVFoundation
             }
 
             _converter.InputData += NeedData;
-
-            _pcmConsumer = new PcmAudioBufferDataConsumer();
+            _sampleBuffer = Marshal.AllocHGlobal(BUFFER_SIZE);
         }
 
         AudioConverterError NeedData(ref int numberDataPackets, AudioBuffers data, ref AudioStreamPacketDescription[] dataPacketDescription)

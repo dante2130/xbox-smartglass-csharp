@@ -20,22 +20,25 @@ namespace DarkId.SmartGlass.Nano.AVFoundation
                 {
                     Format = format.Codec.ToATFormatType(),
                     ChannelsPerFrame = (int)format.Channels,
-                    SampleRate = format.SampleRate,
+                    SampleRate = (double)format.SampleRate,
                     FormatFlags = AT.AudioFormatFlags.LinearPCMIsFloat,
                     FramesPerPacket = 1,
                     BitsPerChannel = (int)format.SampleSize / 2 / 8,
                     BytesPerFrame = (int)format.SampleSize,
                     BytesPerPacket = (int)format.SampleSize,
+                    Reserved = 0 // always 0
                 }
                 : new AT.AudioStreamBasicDescription()
                 {
                     Format = format.Codec.ToATFormatType(),
                     ChannelsPerFrame = (int)format.Channels,
-                    SampleRate = format.SampleRate,
-                    FramesPerPacket = 1,
-                    BitsPerChannel = 16,
-                    BytesPerFrame = 420,
-                    BytesPerPacket = 420
+                    SampleRate = (double)format.SampleRate,
+                    FormatFlags = AT.AudioFormatFlags.FlagsAreAllClear,
+                    FramesPerPacket = 1024,
+                    BitsPerChannel = 0, // compressed: 0
+                    BytesPerFrame = 0, // compressed: 0
+                    BytesPerPacket = 0, // compressed: 0
+                    Reserved = 0 // always 0
                 };
         }
 
