@@ -1,74 +1,89 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
 using AudioToolbox;
 using AVFoundation;
+using CoreFoundation;
 using DarkId.SmartGlass.Nano.Consumer;
 using DarkId.SmartGlass.Nano.Packets;
 using Foundation;
 
 namespace DarkId.SmartGlass.Nano.AVFoundation
 {
-    public class CompressedAudioBufferDataConsumer : IAVFoundationAudioDataConsumer
+    public class CompressedAudioBufferDataConsumer
     {
-        private readonly AVAudioCompressedBuffer _compressedBuffer;
-        private readonly AVAudioConverter _converter;
-        private readonly AudioStreamBasicDescription _pcmDescription;
+        private readonly static int BUFFER_SIZE = 0x1000;
 
-        public AVAudioPcmBuffer Buffer { get; }
+        private readonly IntPtr _sampleBuffer;
+        private readonly Queue<AudioData> _sampleQueue;
+        private readonly AudioConverter _converter;
+        private readonly PcmAudioBufferDataConsumer _pcmConsumer;
 
-        // Python compressed packet header code:
-        // header_id = 0  # MPEG4
-        // adts_headers = bytearray(AACFrame.ADTS_HEADER_LEN)
-        // frame_size += AACFrame.ADTS_HEADER_LEN
-        // sampling_index = AACFrame.sampling_freq_index[sampling_freq]
-
-        // adts_headers[0] = 0xFF
-        // adts_headers[1] = 0xF0 | (header_id << 3) | 0x1
-        // adts_headers[2] = (aac_profile << 6) | (sampling_index << 2) | 0x2 | \
-        //                   (channels & 0x4)
-        // adts_headers[3] = ((channels & 0x3) << 6) | 0x30 | (frame_size >> 11)
-        // adts_headers[4] = ((frame_size >> 3) & 0x00FF)
-        // adts_headers[5] = (((frame_size & 0x0007) << 5) + 0x1F)
-        // adts_headers[6] = 0xFC
-
-        // return adts_headers
-
-        public CompressedAudioBufferDataConsumer(AVAudioFormat format)
+        public CompressedAudioBufferDataConsumer(AudioStreamBasicDescription format)
         {
-            _compressedBuffer = new AVAudioCompressedBuffer(format, 1024, 1024 * 2);
+            _sampleBuffer = Marshal.AllocHGlobal(BUFFER_SIZE);
+            _sampleQueue = new Queue<AudioData>();
+            _converter = AudioConverter.Create(
+                format,
+                AudioStreamBasicDescription.CreateLinearPCM());
 
-            _pcmDescription = AudioStreamBasicDescription.CreateLinearPCM();
-            _converter = new AVAudioConverter(format, new AVAudioFormat(ref _pcmDescription));
+            if (_converter == null)
+            {
+                throw new Exception("Failed to init AudioConverter");
+            }
 
-            Buffer = new AVAudioPcmBuffer(new AVAudioFormat(ref _pcmDescription), 1024);
+            _converter.InputData += NeedData;
+
+            _pcmConsumer = new PcmAudioBufferDataConsumer();
+        }
+
+        AudioConverterError NeedData(ref int numberDataPackets, AudioBuffers data, ref AudioStreamPacketDescription[] dataPacketDescription)
+        {
+            numberDataPackets = 0;
+            AudioData sample;
+            if(!_sampleQueue.TryDequeue(out sample))
+            {
+                Marshal.Copy(sample.Data, 0, _sampleBuffer, sample.Data.Length);
+                data.SetData(0, _sampleBuffer);
+                numberDataPackets = 1;
+            }
+            else
+            {
+                numberDataPackets = 0;
+            }
+
+            return AudioConverterError.None;
         }
 
         public void ConsumeAudioData(AudioData data)
         {
-            // TODO: This is borked, but it doesn't matter until the stuff in the constructor doesn't crash, so...
-            Marshal.Copy(data.Data,
-                (int)(data.FrameId % _compressedBuffer.PacketCapacity) * (int)_compressedBuffer.MaximumPacketSize,
-                _compressedBuffer.Data,
-                (int)_compressedBuffer.MaximumPacketSize);
+            // Enqueue fresh data
+            _sampleQueue.Enqueue(data);
 
-            _converter.ConvertToBuffer(Buffer, out NSError error, (uint inNumberOfPackets, out AVAudioConverterInputStatus outStatus) =>
-             {
-                 outStatus = AVAudioConverterInputStatus.HaveData;
-                 return _compressedBuffer;
-             });
+            // Try to get decoded data back
+            AudioConverterError err;
+            AudioBuffers buffers = new AudioBuffers(10);
+            AudioStreamPacketDescription[] descs = new AudioStreamPacketDescription[10];
+            int packetSize = 0;
 
-            if (error != null)
+            err = _converter.FillComplexBuffer(ref packetSize,
+                                               buffers,
+                                               descs);
+
+            if (err != AudioConverterError.None)
             {
-                Debug.WriteLine(error.ToString());
+                Debug.WriteLine("FillComplexBuffer failed: {0}", err);
+                return;
             }
+
+            Debug.WriteLine("Got back {0} bytes of converted audio", packetSize);
+            _pcmConsumer.ConsumeAudioData(buffers, descs);
         }
 
         public void Dispose()
         {
-            Buffer.Dispose();
-            _converter.Dispose();
-            _compressedBuffer.Dispose();
+            Marshal.FreeHGlobal(_sampleBuffer);
         }
     }
 }

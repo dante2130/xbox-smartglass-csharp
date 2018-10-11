@@ -21,10 +21,10 @@ namespace DarkId.SmartGlass.Nano.AVFoundation
                     Format = format.Codec.ToATFormatType(),
                     ChannelsPerFrame = (int)format.Channels,
                     SampleRate = format.SampleRate,
-                    BytesPerFrame = (int)format.SampleSize,
-                    BitsPerChannel = (int)format.SampleSize / 2 / 8,
-                    FramesPerPacket = 1,
                     FormatFlags = AT.AudioFormatFlags.LinearPCMIsFloat,
+                    FramesPerPacket = 1,
+                    BitsPerChannel = (int)format.SampleSize / 2 / 8,
+                    BytesPerFrame = (int)format.SampleSize,
                     BytesPerPacket = (int)format.SampleSize,
                 }
                 : new AT.AudioStreamBasicDescription()
@@ -32,11 +32,10 @@ namespace DarkId.SmartGlass.Nano.AVFoundation
                     Format = format.Codec.ToATFormatType(),
                     ChannelsPerFrame = (int)format.Channels,
                     SampleRate = format.SampleRate,
-                    // BytesPerFrame = (int)format.SampleSize,
-                    BitsPerChannel = 16,
                     FramesPerPacket = 1,
-                    FormatFlags = AT.AudioFormatFlags.IsFloat,
-                    BytesPerPacket = (int)format.SampleSize
+                    BitsPerChannel = 16,
+                    BytesPerFrame = 420,
+                    BytesPerPacket = 420
                 };
         }
 

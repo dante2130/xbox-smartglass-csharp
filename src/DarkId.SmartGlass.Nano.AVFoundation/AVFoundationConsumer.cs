@@ -25,14 +25,14 @@ namespace DarkId.SmartGlass.Nano.AVFoundation
 
         public void ConsumeAudioData(AudioData data)
         {
-            //_audioEngineManager.ConsumeAudioData(data);
+            _audioEngineManager.ConsumeAudioData(data);
         }
 
         public void ConsumeAudioFormat(AudioFormat format)
         {
             try
             {
-                //_audioEngineManager = new AudioEngineManager(format);
+                _audioEngineManager = new AudioEngineManager(format);
             }
             catch (Exception e)
             {

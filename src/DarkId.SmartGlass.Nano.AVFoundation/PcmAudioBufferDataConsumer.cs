@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using AudioToolbox;
 using AVFoundation;
@@ -7,26 +8,59 @@ using DarkId.SmartGlass.Nano.Packets;
 
 namespace DarkId.SmartGlass.Nano.AVFoundation
 {
-    public class PcmAudioBufferDataConsumer : IAVFoundationAudioDataConsumer, IDisposable
+    public class PcmAudioBufferDataConsumer : IDisposable
     {
-        public AVAudioPcmBuffer Buffer { get; }
+        static readonly int MAX_BUFFER_SIZE = 0x10000;
 
-        public PcmAudioBufferDataConsumer(AVAudioFormat format)
+        private bool _bufferReady;
+
+        private readonly AudioStreamBasicDescription _basicDescription;
+        private readonly OutputAudioQueue _audioQueue;
+
+        public PcmAudioBufferDataConsumer()
         {
-            Buffer = new AVAudioPcmBuffer(format, 1024);
+            _bufferReady = false;
+
+            _basicDescription = AudioStreamBasicDescription.CreateLinearPCM();
+            _audioQueue = new OutputAudioQueue(_basicDescription);
+            _audioQueue.Volume = 1.0f;
+            _audioQueue.BufferCompleted += _audioQueue_BufferCompleted;
         }
 
-        public void ConsumeAudioData(AudioData data)
+        void _audioQueue_BufferCompleted(object sender, BufferCompletedEventArgs e)
         {
-            Marshal.Copy(data.Data,
-                (int)(data.FrameId % Buffer.FrameCapacity) * (int)Buffer.FrameLength,
-                Buffer.FloatChannelData,
-                (int)Buffer.FrameLength);
+            _bufferReady = true;
+            Debug.WriteLine("Audio buffer is ready");
+        }
+
+        public void ConsumeAudioData(AudioBuffers data, AudioStreamPacketDescription[] descs)
+        {
+            if (!_bufferReady)
+            {
+                Debug.WriteLine("ConsumeAudioData called when buffer wasnt ready");
+                return;
+            }
+            
+            _audioQueue.EnqueueBuffer(data.Handle, descs);
+
+            if (!_audioQueue.IsRunning)
+            {
+                Play();
+            }
+        }
+
+        public void Play()
+        {
+            _audioQueue.Start();
+        }
+
+        public void Stop()
+        {
+            _audioQueue.Stop(immediate: false);
         }
 
         public void Dispose()
         {
-            Buffer.Dispose();
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using AVFoundation;
+using AudioToolbox;
 using DarkId.SmartGlass.Nano.Consumer;
 using DarkId.SmartGlass.Nano.Packets;
 using Foundation;
@@ -9,19 +10,14 @@ namespace DarkId.SmartGlass.Nano.AVFoundation
 {
     public class AudioEngineManager : IDisposable
     {
-        readonly AVAudioEngine _engine;
-        readonly AVAudioPlayerNode _playerNode;
-        readonly IAVFoundationAudioDataConsumer _consumer;
+        // readonly AVAudioEngine _engine;
+        // readonly AVAudioPlayerNode _playerNode;
+        readonly CompressedAudioBufferDataConsumer _consumer;
 
-
-        public AudioEngineManager(AudioFormat format)
+        public AudioEngineManager(DarkId.SmartGlass.Nano.Packets.AudioFormat format)
         {
-            var avFormat = format.ToAVAudioFormat();
-
-            _consumer = format.Codec == AudioCodec.PCM ?
-                (IAVFoundationAudioDataConsumer)new PcmAudioBufferDataConsumer(avFormat) :
-                new CompressedAudioBufferDataConsumer(avFormat); 
-
+            _consumer = new CompressedAudioBufferDataConsumer(format.ToATAudioStreamDescription()); 
+            /*
             _engine = new AVAudioEngine();
             _playerNode = new AVAudioPlayerNode();
 
@@ -34,25 +30,31 @@ namespace DarkId.SmartGlass.Nano.AVFoundation
             {
                 Debug.WriteLine(error.ToString());
             }
+            */
         }
 
         public void ConsumeAudioData(AudioData data)
         {
             _consumer.ConsumeAudioData(data);
 
-            // TODO: May need to interrupt buffer playback to make sure the audio doesn't drift behind?
+            /*
+             * TODO: May need to interrupt buffer playback to make sure the audio doesn't drift behind?
+             * 
+             * 
             _playerNode.ScheduleBuffer(_consumer.Buffer, null, AVAudioPlayerNodeBufferOptions.InterruptsAtLoop, () =>
             {
                 Debug.WriteLine("Buffer schedule completed.");
             });
 
             _playerNode.Play();
+            *
+            */
         }
 
         public void Dispose()
         {
-            _engine.Dispose();
-            _playerNode.Dispose();
+            //_engine.Dispose();
+            //_playerNode.Dispose();
             _consumer.Dispose();
         }
     }
