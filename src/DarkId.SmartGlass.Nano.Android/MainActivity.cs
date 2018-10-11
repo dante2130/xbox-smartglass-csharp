@@ -7,7 +7,6 @@ using Android.Graphics;
 using Android.Media;
 using System.Threading.Tasks;
 using DarkId.SmartGlass.Nano.Consumer;
-using DarkId.SmartGlass.Nano.Packets;
 using System.Collections.Generic;
 
 namespace DarkId.SmartGlass.Nano.Android
@@ -15,10 +14,14 @@ namespace DarkId.SmartGlass.Nano.Android
     [Activity(Label = "xNano", MainLauncher = true, Icon = "@mipmap/icon")]
     public class MainActivity : Activity, TextureView.ISurfaceTextureListener, IConsumer
     {
-        private Queue<byte[]> _videoFrameQueue;
+        private Queue<H264Frame> _videoFrameQueue;
         private VideoAssembler _videoAssembler;
-        private TextureView _surface;
-        private MediaCodec _mcodec;
+        private TextureView _videoSurface;
+        private MediaCodec _videoCodec;
+
+        private Queue<byte[]> _audioFrameQueue;
+        private AudioTrack _audioTrack;
+        private MediaCodec _audioCodec;
 
         private static readonly string _hostname = "10.0.0.241";
         private SmartGlassClient _smartGlassClient;
@@ -31,14 +34,14 @@ namespace DarkId.SmartGlass.Nano.Android
             // Set our view from the "main" layout resource
             SetContentView(Resource.Layout.Main);
 
-            _videoFrameQueue = new Queue<byte[]>();
+            _videoFrameQueue = new Queue<H264Frame>();
             _videoAssembler = new VideoAssembler();
 
-            _surface = FindViewById<TextureView>(Resource.Id.textureView1);
-            _surface.SurfaceTextureListener = this;
+            _videoSurface = FindViewById<TextureView>(Resource.Id.textureView1);
+            _videoSurface.SurfaceTextureListener = this;
         }
 
-        public void ConsumeAudioData(AudioData data)
+        public void ConsumeAudioData(Packets.AudioData data)
         {
         }
 
@@ -46,43 +49,22 @@ namespace DarkId.SmartGlass.Nano.Android
         {
         }
 
-        public void ConsumeVideoData(VideoData data)
+        public void ConsumeVideoData(Packets.VideoData data)
         {
-            byte[] frame = _videoAssembler.AssembleVideoFrame(data);
+            H264Frame frame = _videoAssembler.AssembleVideoFrame(data);
             if (frame != null)
             {
                 _videoFrameQueue.Enqueue(frame);
             }
         }
 
-        public void ConsumeVideoFormat(VideoFormat format)
+        public void ConsumeVideoFormat(Packets.VideoFormat format)
         {
             System.Diagnostics.Debug.WriteLine("Got VideoFormat: {0}", format);
         }
 
         public void OnSurfaceTextureAvailable(SurfaceTexture surface, int width, int height)
         {
-            MediaFormat format = MediaFormat.CreateVideoFormat(
-                mime: MediaFormat.MimetypeVideoAvc,
-                width: 1280,
-                height: 720);
-
-            // TODO: Extract beforehand and set here
-            //format.SetByteBuffer("csd-0", bytes: null); // SPS
-            //format.SetByteBuffer("csd-1", bytes: null); // PPS
-
-            format.SetInteger(MediaFormat.KeyMaxInputSize, 100000);
-
-            _mcodec = MediaCodec.CreateDecoderByType(
-                                            MediaFormat.MimetypeVideoAvc);
-
-            _mcodec.Configure(format: format,
-                              surface: new Surface(_surface.SurfaceTexture),
-                              crypto: null,
-                              flags: MediaCodecConfigFlags.None);
-
-            _mcodec.Start();
-            Task.Run(() => StartStream());
         }
 
         public bool OnSurfaceTextureDestroyed(SurfaceTexture surface)
@@ -117,16 +99,118 @@ namespace DarkId.SmartGlass.Nano.Android
             VideoDecodeTask();
         }
 
-        public void VideoDecodeTask()
+        public byte[] GetAudioCodecSpecificData(AACProfile profile,
+                                                int sampleRate,
+                                                int channels)
+        {
+            //TODO: Get sampleIndex from DarkId.SmartGlass
+            byte sampleIndex = 0;
+            byte[] csd0 = new byte[2];
+            csd0[0] = (byte)(((byte)profile << 3) | (sampleIndex >> 1));
+            csd0[1] = (byte)((byte)((sampleIndex << 7) & 0x80) | (channels << 3));
+
+            return csd0;
+        }
+
+        public void SetupAudio()
+        {
+            //TODO: Setup _audioTrack
+            _audioTrack = new AudioTrack();
+
+            //TODO: Get values from AudioFormat
+            MediaFormat audioFormat = MediaFormat.CreateAudioFormat(
+                mime: MediaFormat.MimetypeAudioAac,
+                sampleRate: 38400,
+                channelCount: 2);
+
+            _audioCodec = MediaCodec.CreateDecoderByType(
+                MediaFormat.MimetypeAudioAac);
+
+            _audioCodec.Configure(
+                format: audioFormat,
+                surface: null,
+                crypto: null,
+                flags: MediaCodecConfigFlags.None);
+
+            _audioCodec.Start();
+        }
+
+        public void SetupVideo()
+        {
+            //TODO: Get values from VideoFormat
+            MediaFormat videoFormat = MediaFormat.CreateVideoFormat(
+                mime: MediaFormat.MimetypeVideoAvc,
+                width: 1280,
+                height: 720);
+
+            // TODO: Extract beforehand and set here
+            //format.SetByteBuffer("csd-0", bytes: null); // SPS
+            //format.SetByteBuffer("csd-1", bytes: null); // PPS
+
+            videoFormat.SetInteger(MediaFormat.KeyMaxInputSize, 100000);
+
+            _videoCodec = MediaCodec.CreateDecoderByType(
+                                            MediaFormat.MimetypeVideoAvc);
+
+            _videoCodec.Configure(format: videoFormat,
+                                  surface: new Surface(_videoSurface.SurfaceTexture),
+                                  crypto: null,
+                                  flags: MediaCodecConfigFlags.None);
+
+            _videoCodec.Start();
+        }
+
+        public void AudioDecodeTask()
         {
             while (true)
             {
                 byte[] frame;
+                bool success = _audioFrameQueue.TryDequeue(out frame);
+
+                if (!success)
+                {
+                    continue;
+                }
+
+                // Now we need to give it to the Codec to decode
+
+                // Get the input buffer from the decoder
+                // Pass in -1 here as in this example we don't have a playback time reference
+                int inputIndex = _audioCodec.DequeueInputBuffer(-1);
+
+                // If  the buffer number is valid use the buffer with that index
+                if (inputIndex >= 0)
+                {
+                    Java.Nio.ByteBuffer buffer = _audioCodec.GetInputBuffer(inputIndex);
+                    buffer.Put(frame);
+                    // tell the decoder to process the frame
+                    _audioCodec.QueueInputBuffer(inputIndex, 0, frame.Length, 0, 0);
+                }
+
+                MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
+                int outputIndex = _audioCodec.DequeueOutputBuffer(info, 0);
+                if (outputIndex >= 0)
+                {
+                    Java.Nio.ByteBuffer decodedSample =_audioCodec.GetOutputBuffer(outputIndex);
+                    //TODO: Send decoded to audioTrack to play
+                    _audioTrack.Write();
+                    _audioTrack.Play();
+
+                    // Just release outputBuffer, callback will handle rendering
+                    _videoCodec.ReleaseOutputBuffer(outputIndex, true);
+                }
+            }
+        }
+
+        public void VideoDecodeTask()
+        {
+            while (true)
+            {
+                H264Frame frame;
                 bool success =_videoFrameQueue.TryDequeue(out frame);
 
                 if (!success)
                 {
-                    System.Threading.Thread.Sleep(200);
                     continue;
                 }
 
@@ -134,22 +218,26 @@ namespace DarkId.SmartGlass.Nano.Android
 
                 // Get the input buffer from the decoder
                 // Pass in -1 here as in this example we don't have a playback time reference
-                int inputIndex = _mcodec.DequeueInputBuffer(-1);
+                int inputIndex = _videoCodec.DequeueInputBuffer(-1);
 
                 // If  the buffer number is valid use the buffer with that index
                 if (inputIndex >= 0)
                 {
-                    Java.Nio.ByteBuffer buffer = _mcodec.GetInputBuffer(inputIndex);
-                    buffer.Put(frame);
+                    //TODO: Check if this is the expected data layout
+                    byte[] frameData = frame.RawData;
+
+                    Java.Nio.ByteBuffer buffer = _videoCodec.GetInputBuffer(inputIndex);
+                    buffer.Put(frameData);
                     // tell the decoder to process the frame
-                    _mcodec.QueueInputBuffer(inputIndex, 0, frame.Length, 0, 0);
+                    _videoCodec.QueueInputBuffer(inputIndex, 0, frameData.Length, 0, 0);
                 }
 
                 MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
-                int outputIndex = _mcodec.DequeueOutputBuffer(info, 0);
+                int outputIndex = _videoCodec.DequeueOutputBuffer(info, 0);
                 if (outputIndex >= 0)
                 {
-                    _mcodec.ReleaseOutputBuffer(outputIndex, true);
+                    // Just release outputBuffer, callback will handle rendering
+                    _videoCodec.ReleaseOutputBuffer(outputIndex, true);
                 }
             }
         }

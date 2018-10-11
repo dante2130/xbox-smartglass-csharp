@@ -42,10 +42,10 @@ namespace DarkId.SmartGlass.Nano.AVFoundation
 
         public void ConsumeVideoData(VideoData data)
         {
-            byte[] frameData = _videoAssembler.AssembleVideoFrame(data);
-            if (frameData != null)
+            H264Frame frame = _videoAssembler.AssembleVideoFrame(data);
+            if (frame != null)
             {
-                _videoEngineManager.ConsumeVideoData(data.Timestamp, frameData);
+                _videoEngineManager.ConsumeVideoData(frame);
             }
         }
 

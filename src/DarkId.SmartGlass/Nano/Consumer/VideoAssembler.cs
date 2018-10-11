@@ -15,12 +15,13 @@ namespace DarkId.SmartGlass.Nano.Consumer
             _videoData = new Dictionary<uint, List<VideoData>>();
         }
 
-        public byte[] AssembleVideoFrame(VideoData data)
+        public H264Frame AssembleVideoFrame(VideoData data)
         {
             // Keyframe: Flags 0x6 (20 -70 packets)
             // Intermediate: Flags 0x4 (1-2 packets)
             uint frameId = data.FrameId;
             uint packetCount = data.PacketCount;
+            long timeStamp = data.Timestamp;
 
             if (!_videoData.ContainsKey(frameId))
             {
@@ -48,7 +49,7 @@ namespace DarkId.SmartGlass.Nano.Consumer
                         ms.Write(frame.Data, 0, frame.Data.Length);
                     }
 
-                    return ms.ToArray();
+                    return new H264Frame(ms.ToArray(), timeStamp);
                 }
             }
 
