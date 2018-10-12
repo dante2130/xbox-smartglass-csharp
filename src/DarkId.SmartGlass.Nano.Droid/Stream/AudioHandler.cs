@@ -21,10 +21,15 @@ namespace DarkId.SmartGlass.Nano.Droid
             _audioFrameQueue = new Queue<Consumer.AACFrame>();
         }
 
-        public void SetupAudio(int sampleRate, int channels)
+        public void SetupAudio(int sampleRate, int channels, byte[] esdsData)
         {
-            //TODO: Setup _audioTrack
-            // _audioTrack = new AudioTrack();
+            _audioTrack = new AudioTrack(
+                    Stream.Music,
+                    44100,
+                    ChannelOut.Stereo,
+                    Encoding.Pcm16bit,
+                    4096,
+                    AudioTrackMode.Stream);
 
             MediaFormat audioFormat = MediaFormat.CreateAudioFormat(
                 mime: MediaFormat.MimetypeAudioAac,
@@ -34,6 +39,18 @@ namespace DarkId.SmartGlass.Nano.Droid
             _audioCodec = MediaCodec.CreateDecoderByType(
                 MediaFormat.MimetypeAudioAac);
 
+            byte Profile = 1;
+            byte sampleIndex = AacAdtsAssembler.GetSamplingFrequencyIndex(sampleRate);
+            byte[] csd0 = new byte[2];
+            csd0[0] = (byte)(((byte)Profile << 3) | (sampleIndex >> 1));
+            csd0[1] = (byte)((byte)((sampleIndex << 7) & 0x80) | (channels << 3));
+
+            esdsData = csd0;
+
+            var esds = Java.Nio.ByteBuffer.Allocate(esdsData.Length).Put(esdsData);
+            audioFormat.SetByteBuffer("csd-0", bytes: esds); // ESDS
+
+
             _audioCodec.SetCallback(this);
             _audioCodec.Configure(
                 format: audioFormat,
@@ -42,20 +59,17 @@ namespace DarkId.SmartGlass.Nano.Droid
                 flags: MediaCodecConfigFlags.None);
 
             _audioCodec.Start();
+            _audioTrack.Play();
         }
 
         public void ConsumeAudioData(Packets.AudioData data)
         {
-            return;
             AACFrame frame = AudioAssembler.AssembleAudioFrame(
                 data,
-               AACProfile.LC,
-               (int)_audioFormat.SampleRate,
-               (byte)_audioFormat.Channels);
-            if (_audioCodec == null)
-            {
-                SetupAudio(frame.SampleRate, frame.Channels);
-            }
+                AACProfile.LC,
+                (int)_audioFormat.SampleRate,
+                (byte)_audioFormat.Channels);
+
             if (_audioCodec != null)
             {
                 _audioFrameQueue.Enqueue(frame);
@@ -78,11 +92,13 @@ namespace DarkId.SmartGlass.Nano.Droid
             bool success = _audioFrameQueue.TryDequeue(out frame);
 
             if (!success)
+            {
+                codec.QueueInputBuffer(index, 0, 0, 0, 0);
                 return;
+            }
 
             Java.Nio.ByteBuffer buffer = codec.GetInputBuffer(index);
             buffer.Put(frame.RawData);
-            buffer.Flip();
 
             // tell the decoder to process the frame
             codec.QueueInputBuffer(index, 0, frame.RawData.Length, 0, 0);
@@ -91,16 +107,13 @@ namespace DarkId.SmartGlass.Nano.Droid
         public override void OnOutputBufferAvailable(MediaCodec codec, int index, MediaCodec.BufferInfo info)
         {
             Java.Nio.ByteBuffer decodedSample = codec.GetOutputBuffer(index);
-            //TODO: Send decoded to audioTrack to play
-            //_audioTrack.Write();
-            //_audioTrack.Play();
+            _audioTrack.Write(decodedSample, 0, WriteMode.NonBlocking);
 
             codec.ReleaseOutputBuffer(index, true);
         }
 
         public override void OnOutputFormatChanged(MediaCodec codec, MediaFormat format)
         {
-            throw new NotImplementedException();
         }
 
         public void Dispose()

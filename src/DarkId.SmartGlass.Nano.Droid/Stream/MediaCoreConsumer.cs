@@ -18,6 +18,7 @@ namespace DarkId.SmartGlass.Nano.Droid
             _audio = new AudioHandler();
             //TODO: Setup dynamically
             _video.SetupVideo(1280, 720, null, null);
+            _audio.SetupAudio(48000, 2, null);
         }
 
         public void ConsumeAudioData(AudioData data)
