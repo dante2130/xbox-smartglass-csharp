@@ -7,7 +7,8 @@ using DarkId.SmartGlass.Nano.Packets;
 
 namespace DarkId.SmartGlass.Nano.Android
 {
-    public class VideoHandler : MediaCodec.Callback, Consumer.IVideoConsumer
+    public class VideoHandler
+        : MediaCodec.Callback, Consumer.IVideoConsumer, IDisposable
     {
         private readonly TextureView _textureView;
 
@@ -19,7 +20,7 @@ namespace DarkId.SmartGlass.Nano.Android
 
         public VideoHandler(TextureView textureView)
         {
-            _textureView  = textureView;
+            _textureView = textureView;
 
             _videoFrameQueue = new Queue<Consumer.H264Frame>();
             _videoAssembler = new Consumer.VideoAssembler();
@@ -118,6 +119,17 @@ namespace DarkId.SmartGlass.Nano.Android
 
         public override void OnOutputFormatChanged(MediaCodec codec, MediaFormat format)
         {
+        }
+
+        public void Dispose()
+        {
+            if (_videoCodec != null)
+            {
+                _videoCodec.Stop();
+                _videoCodec.Release();
+                _videoCodec.Dispose();
+            }
+            _videoFrameQueue.Clear();
         }
     }
 }

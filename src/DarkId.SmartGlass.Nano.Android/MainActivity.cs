@@ -8,11 +8,14 @@ using Android.Media;
 using System.Threading.Tasks;
 using DarkId.SmartGlass.Nano.Consumer;
 using System.Collections.Generic;
+using Android.Content.PM;
 
 namespace DarkId.SmartGlass.Nano.Android
 {
-    [Activity(Label = "xNano", MainLauncher = true, Icon = "@mipmap/icon")]
-    public class MainActivity : Activity, TextureView.ISurfaceTextureListener
+    [Activity(Label = "xNano", MainLauncher = true, Icon = "@mipmap/icon",
+              ScreenOrientation = ScreenOrientation.Landscape)]
+    public class MainActivity
+        : Activity, TextureView.ISurfaceTextureListener
     {
         private bool setupRan = false;
         private TextureView _videoSurface;
@@ -26,11 +29,26 @@ namespace DarkId.SmartGlass.Nano.Android
         {
             base.OnCreate(savedInstanceState);
 
+            //Remove title bar
+            RequestWindowFeature(WindowFeatures.NoTitle);
+            //Remove notification bar
+            Window.SetFlags(WindowManagerFlags.Fullscreen, WindowManagerFlags.Fullscreen);
+
             // Set our view from the "main" layout resource
             SetContentView(Resource.Layout.Main);
 
             _videoSurface = FindViewById<TextureView>(Resource.Id.textureView1);
             _videoSurface.SurfaceTextureListener = this;
+        }
+
+        protected override void OnStop()
+        {
+            base.OnStop();
+
+            _videoSurface.Dispose();
+            _smartGlassClient.Dispose();
+            _nanoClient.Dispose();
+            _mcConsumer.Dispose();
         }
 
         public void OnSurfaceTextureAvailable(SurfaceTexture surface, int width, int height)

@@ -6,7 +6,8 @@ using DarkId.SmartGlass.Nano.Packets;
 
 namespace DarkId.SmartGlass.Nano.Android
 {
-    public class AudioHandler : MediaCodec.Callback, Consumer.IAudioConsumer
+    public class AudioHandler
+        : MediaCodec.Callback, Consumer.IAudioConsumer, IDisposable
     {
         private Packets.AudioFormat _audioFormat;
 
@@ -100,6 +101,17 @@ namespace DarkId.SmartGlass.Nano.Android
         public override void OnOutputFormatChanged(MediaCodec codec, MediaFormat format)
         {
             throw new NotImplementedException();
+        }
+
+        public void Dispose()
+        {
+            if (_audioCodec != null)
+            {
+                _audioCodec.Stop();
+                _audioCodec.Release();
+                _audioCodec.Dispose();
+            }
+            _audioFrameQueue.Clear();
         }
     }
 }

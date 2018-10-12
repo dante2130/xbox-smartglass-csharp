@@ -39,5 +39,11 @@ namespace DarkId.SmartGlass.Nano.Android
         {
             _video.ConsumeVideoFormat(format);
         }
+
+        public void Dispose()
+        {
+            _video.Dispose();
+            _audio.Dispose();
+        }
     }
 }
