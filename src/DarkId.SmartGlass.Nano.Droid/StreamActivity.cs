@@ -16,7 +16,7 @@ using Android.Media;
 using System.Threading.Tasks;
 using DarkId.SmartGlass.Nano.Consumer;
 
-namespace DarkId.SmartGlass.Nano.Android
+namespace DarkId.SmartGlass.Nano.Droid
 {
     [Activity(Label = "StreamActivity",
               ScreenOrientation = ScreenOrientation.Landscape)]
@@ -25,7 +25,7 @@ namespace DarkId.SmartGlass.Nano.Android
         private bool setupRan = false;
         private TextureView _videoSurface;
 
-        private static readonly string _hostname = "10.0.0.241";
+        private string _hostName;
         private SmartGlassClient _smartGlassClient;
         private NanoClient _nanoClient;
         private MediaCoreConsumer _mcConsumer;
@@ -39,8 +39,16 @@ namespace DarkId.SmartGlass.Nano.Android
             //Remove notification bar
             Window.SetFlags(WindowManagerFlags.Fullscreen, WindowManagerFlags.Fullscreen);
 
+            SetContentView(Resource.Layout.StreamLayout);
+
+            _hostName = Intent.Extras.GetString("hostName");
+            Toast.MakeText(this,
+                           String.Format("Connecting to {0}...", _hostName),
+                           ToastLength.Short)
+                 .Show();
+
             // Create your application here
-            _videoSurface = FindViewById<TextureView>(Resource.Id.textureView1);
+            _videoSurface = FindViewById<TextureView>(Resource.Id.tvVideoStream);
             _videoSurface.SurfaceTextureListener = this;
         }
 
@@ -81,14 +89,18 @@ namespace DarkId.SmartGlass.Nano.Android
         {
             System.Diagnostics.Debug.WriteLine($"Connecting to console...");
 
-            _smartGlassClient = await SmartGlassClient.ConnectAsync(_hostname);
+            _smartGlassClient = await SmartGlassClient.ConnectAsync(_hostName);
 
             var broadcastChannel = await _smartGlassClient.GetBroadcastChannelAsync();
             var result = await broadcastChannel.StartGamestreamAsync();
 
             System.Diagnostics.Debug.WriteLine($"Connecting to Nano, TCP: {result.TcpPort}, UDP: {result.UdpPort}");
 
-            _nanoClient = new NanoClient(_hostname, result.TcpPort, result.UdpPort, new System.Guid(), _mcConsumer);
+            _nanoClient = new NanoClient(_hostName,
+                                         result.TcpPort, result.UdpPort,
+                                         new System.Guid(),
+                                         _mcConsumer);
+
             _nanoClient.StreamRunning += _nanoClient_StreamRunning;
             _nanoClient.Initialize();
 

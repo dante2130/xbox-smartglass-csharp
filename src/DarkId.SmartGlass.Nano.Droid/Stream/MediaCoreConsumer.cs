@@ -5,7 +5,7 @@ using Android.Views;
 using DarkId.SmartGlass.Nano.Consumer;
 using DarkId.SmartGlass.Nano.Packets;
 
-namespace DarkId.SmartGlass.Nano.Android
+namespace DarkId.SmartGlass.Nano.Droid
 {
     public class MediaCoreConsumer : IConsumer
     {

@@ -9,9 +9,9 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-[assembly: global::Android.Runtime.ResourceDesignerAttribute("DarkId.SmartGlass.Nano.Android.Resource", IsApplication=true)]
+[assembly: global::Android.Runtime.ResourceDesignerAttribute("DarkId.SmartGlass.Nano.Droid.Resource", IsApplication=true)]
 
-namespace DarkId.SmartGlass.Nano.Android
+namespace DarkId.SmartGlass.Nano.Droid
 {
 	
 	
@@ -44,8 +44,14 @@ namespace DarkId.SmartGlass.Nano.Android
 		public partial class Id
 		{
 			
+			// aapt resource value: 0x7f050001
+			public const int btnRefresh = 2131034113;
+			
 			// aapt resource value: 0x7f050000
-			public const int textureView1 = 2131034112;
+			public const int lvConsoles = 2131034112;
+			
+			// aapt resource value: 0x7f050002
+			public const int tvVideoStream = 2131034114;
 			
 			static Id()
 			{
@@ -61,10 +67,10 @@ namespace DarkId.SmartGlass.Nano.Android
 		{
 			
 			// aapt resource value: 0x7f030000
-			public const int ListView_ConsoleRow = 2130903040;
+			public const int Main = 2130903040;
 			
 			// aapt resource value: 0x7f030001
-			public const int Main = 2130903041;
+			public const int StreamLayout = 2130903041;
 			
 			static Layout()
 			{

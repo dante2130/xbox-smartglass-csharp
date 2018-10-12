@@ -13,7 +13,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DarkId.SmartGlass.Nano.AVFo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DarkId.SmartGlass.Nano.macOS", "src\DarkId.SmartGlass.Nano.macOS\DarkId.SmartGlass.Nano.macOS.csproj", "{5852603B-C789-4033-AE96-5354DD19E8AC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DarkId.SmartGlass.Nano.Android", "src\DarkId.SmartGlass.Nano.Android\DarkId.SmartGlass.Nano.Android.csproj", "{FD2233B4-A4B8-4A75-A409-EDAB733FA7EA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DarkId.SmartGlass.Nano.Droid", "src\DarkId.SmartGlass.Nano.Droid\DarkId.SmartGlass.Nano.Droid.csproj", "{FD2233B4-A4B8-4A75-A409-EDAB733FA7EA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
