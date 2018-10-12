@@ -35,11 +35,8 @@ namespace DarkId.SmartGlass.Nano.Droid
 
             /*
              * TODO: Use SPS / PPS
-            var sps = Java.Nio.ByteBuffer.Allocate(spsData.Length).Put(spsData);
-            var pps = Java.Nio.ByteBuffer.Allocate(ppsData.Length).Put(ppsData);
-
-            videoFormat.SetByteBuffer("csd-0", bytes: sps); // SPS
-            videoFormat.SetByteBuffer("csd-1", bytes: pps); // PPS
+            videoFormat.SetByteBuffer("csd-0", Java.Nio.ByteBuffer.Wrap(spsData));
+            videoFormat.SetByteBuffer("csd-1", Java.Nio.ByteBuffer.Wrap(ppsData));
             */
 
             videoFormat.SetInteger(MediaFormat.KeyMaxInputSize, 100000);

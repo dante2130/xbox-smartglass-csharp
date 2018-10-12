@@ -24,31 +24,40 @@ namespace DarkId.SmartGlass.Nano.Droid
         public void SetupAudio(int sampleRate, int channels, byte[] esdsData)
         {
             _audioTrack = new AudioTrack(
-                    Stream.Music,
-                    44100,
-                    ChannelOut.Stereo,
-                    Encoding.Pcm16bit,
-                    4096,
-                    AudioTrackMode.Stream);
+                new AudioAttributes.Builder()
+                    .SetUsage(AudioUsageKind.Media)
+                    .SetContentType(AudioContentType.Music)
+                    .SetFlags(AudioFlags.LowLatency)
+                    .Build(),
+                new Android.Media.AudioFormat.Builder()
+                    .SetEncoding(Encoding.Pcm16bit)
+                    .SetSampleRate(44100)
+                    .SetChannelMask(ChannelOut.Stereo)
+                    .Build(),
+                4096,
+                AudioTrackMode.Stream,
+                sessionId: 0);
 
             MediaFormat audioFormat = MediaFormat.CreateAudioFormat(
                 mime: MediaFormat.MimetypeAudioAac,
                 sampleRate: sampleRate,
                 channelCount: channels);
+                
+            audioFormat.SetInteger(MediaFormat.KeyIsAdts, 0);
+            audioFormat.SetInteger(MediaFormat.KeyAacProfile, (int)MediaCodecProfileType.Aacobjectlc);
 
             _audioCodec = MediaCodec.CreateDecoderByType(
                 MediaFormat.MimetypeAudioAac);
 
-            byte Profile = 1;
+            // TODO: Remove hardcoding
+            byte profile = (byte)AACProfile.LC;
             byte sampleIndex = AacAdtsAssembler.GetSamplingFrequencyIndex(sampleRate);
             byte[] csd0 = new byte[2];
-            csd0[0] = (byte)(((byte)Profile << 3) | (sampleIndex >> 1));
+            csd0[0] = (byte)(((byte)profile << 3) | (sampleIndex >> 1));
             csd0[1] = (byte)((byte)((sampleIndex << 7) & 0x80) | (channels << 3));
-
             esdsData = csd0;
 
-            var esds = Java.Nio.ByteBuffer.Allocate(esdsData.Length).Put(esdsData);
-            audioFormat.SetByteBuffer("csd-0", bytes: esds); // ESDS
+            audioFormat.SetByteBuffer("csd-0", Java.Nio.ByteBuffer.Wrap(esdsData));
 
 
             _audioCodec.SetCallback(this);
@@ -83,7 +92,7 @@ namespace DarkId.SmartGlass.Nano.Droid
 
         public override void OnError(MediaCodec codec, MediaCodec.CodecException e)
         {
-            throw new NotImplementedException();
+            System.Diagnostics.Debug.WriteLine(e);
         }
 
         public override void OnInputBufferAvailable(MediaCodec codec, int index)
@@ -107,7 +116,8 @@ namespace DarkId.SmartGlass.Nano.Droid
         public override void OnOutputBufferAvailable(MediaCodec codec, int index, MediaCodec.BufferInfo info)
         {
             Java.Nio.ByteBuffer decodedSample = codec.GetOutputBuffer(index);
-            _audioTrack.Write(decodedSample, 0, WriteMode.NonBlocking);
+
+            _audioTrack.Write(decodedSample, 0, WriteMode.Blocking);
 
             codec.ReleaseOutputBuffer(index, true);
         }
