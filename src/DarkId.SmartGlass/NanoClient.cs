@@ -20,6 +20,9 @@ namespace DarkId.SmartGlass
 
         public bool ControlHandshakeDone { get; internal set; }
 
+        // Workaround for now
+        public event EventHandler<EventArgs> StreamRunning;
+
         public NanoClient(string address, int tcpPort, int udpPort,
                           Guid sessionId, Nano.Consumer.IConsumer consumer = null)
         {
@@ -48,6 +51,7 @@ namespace DarkId.SmartGlass
                     SendUdpHandshake();
                     Thread.Sleep(250);
                 }
+                StreamRunning.Invoke(this, null);
             });
 
             Thread.Sleep(2000);

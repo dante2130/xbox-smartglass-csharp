@@ -66,8 +66,6 @@ namespace DarkId.SmartGlass.Nano.Consumer
 
     public class AACFrame
     {
-        private bool _isParsed;
-
         public long TimeStamp { get; private set; }
         public AACProfile Profile { get; private set; }
         public int SampleRate { get; private set; }

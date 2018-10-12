@@ -94,6 +94,14 @@ namespace DarkId.SmartGlass.Nano.Consumer
             }
         }
 
+        public NalUnitType PrimaryType
+        {
+            get
+            {
+                return (NalUnitType)(RawData[4] & 0x1F);
+            }
+        }
+
         // Parsing is not done on initialization to save computation time,
         // in case of dropped frame
         public H264Frame(byte[] data, long timeStamp)
@@ -238,7 +246,7 @@ namespace DarkId.SmartGlass.Nano.Consumer
             {
 
                 // find where the NALU after this one starts so we know how long the PPS parameter is
-                for (int i = _spsSize + 12; i < _spsSize + 50; i++)
+                for (int i = _spsSize + 8; i < _spsSize + 50; i++)
                 {
                     if (frameData[i] == 0x00 &&
                         frameData[i + 1] == 0x00 &&
@@ -251,10 +259,15 @@ namespace DarkId.SmartGlass.Nano.Consumer
                     }
                 }
 
+                if (_ppsSize < 4 || _spsSize < 4)
+                {
+                    throw new InvalidDataException("Couldnt determine PPS/SPS size");
+                }
+
                 // allocate enough data to fit the SPS and PPS parameters into our data objects.
                 // NOTE: buffers won't contain NAL start-code (00 00 00 01)
-                _ppsData = new byte[_spsSize - 4];
-                _spsData = new byte[_ppsSize - 4];
+                _ppsData = new byte[_ppsSize - 4];
+                _spsData = new byte[_spsSize - 4];
 
                 // copy in the actual sps and pps values, again ignoring the 4 byte header
                 Array.Copy(frameData,            4, _spsData, 0, _spsSize - 4);
