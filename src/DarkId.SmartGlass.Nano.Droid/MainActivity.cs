@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using Android.Content.PM;
 
 using DarkId.SmartGlass;
+using System.Threading.Tasks;
 
 namespace DarkId.SmartGlass.Nano.Droid
 {
@@ -38,7 +39,7 @@ namespace DarkId.SmartGlass.Nano.Droid
             _refreshButton.Click += RefreshButton_Click;
         }
 
-        async void RefreshButton_Click(object sender, System.EventArgs e)
+        async Task Discover()
         {
             var discovered = await Device.DiscoverAsync();
             _discovered.Clear();
@@ -46,6 +47,11 @@ namespace DarkId.SmartGlass.Nano.Droid
             {
                 _consoleListAdapter.Add(dev.Address.ToString());
             }
+        }
+
+        async void RefreshButton_Click(object sender, System.EventArgs e)
+        {
+            await Discover();
         }
 
         void ConsoleListView_ItemClick(object sender, AdapterView.ItemClickEventArgs e)

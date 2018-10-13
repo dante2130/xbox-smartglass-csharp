@@ -52,6 +52,7 @@ namespace DarkId.SmartGlass.Nano.Consumer
 
         public byte[] RawData { get; private set; }
         public long TimeStamp { get; private set; }
+        public uint FrameId { get; private set; }
         public List<NalUnitType> NalUnitTypes { get; private set; }
 
         public bool ContainsPPS
@@ -104,11 +105,12 @@ namespace DarkId.SmartGlass.Nano.Consumer
 
         // Parsing is not done on initialization to save computation time,
         // in case of dropped frame
-        public H264Frame(byte[] data, long timeStamp)
+        public H264Frame(byte[] data, uint frameId, long timeStamp)
         {
             _isParsed = false;
             RawData = data;
             TimeStamp = timeStamp;
+            FrameId = frameId;
             NalUnitTypes = new List<NalUnitType>();
         }
 

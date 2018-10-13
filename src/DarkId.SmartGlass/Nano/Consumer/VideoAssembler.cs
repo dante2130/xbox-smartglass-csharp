@@ -49,7 +49,7 @@ namespace DarkId.SmartGlass.Nano.Consumer
                         ms.Write(frame.Data, 0, frame.Data.Length);
                     }
 
-                    return new H264Frame(ms.ToArray(), timeStamp);
+                    return new H264Frame(ms.ToArray(), frameId, timeStamp);
                 }
             }
 
