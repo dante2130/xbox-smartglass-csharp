@@ -24,8 +24,14 @@ namespace DarkId.SmartGlass.Nano.Droid
     public class StreamActivity
         : Activity, TextureView.ISurfaceTextureListener, InputManager.IInputDeviceListener
     {
+        private const int INVALID_GAMEPAD_INDEX = -1;
+
         private bool setupRan = false;
         private TextureView _videoSurface;
+
+        private int _current_device_id;
+        private List<int> _connected_devices;
+        private InputManager _inputManager;
 
         private string _hostName;
         private SmartGlassClient _smartGlassClient;
@@ -54,8 +60,14 @@ namespace DarkId.SmartGlass.Nano.Droid
             _videoSurface = FindViewById<TextureView>(Resource.Id.tvVideoStream);
             _videoSurface.SurfaceTextureListener = this;
 
-            _inputHandler = new InputHandler(this);
-            _inputHandler.EnumerateGamepads();
+            _current_device_id = INVALID_GAMEPAD_INDEX;
+            _connected_devices = new List<int>();
+            _inputHandler = new InputHandler();
+
+            _inputManager = (InputManager)GetSystemService(Context.InputService);
+            _inputManager.RegisterInputDeviceListener(this, null);
+
+            EnumerateGamepads();
         }
 
         protected override void OnStop()
@@ -97,32 +109,146 @@ namespace DarkId.SmartGlass.Nano.Droid
         }
 
         /*
-         * Controller Input
+         * Gamepad input
          */
 
-        public override bool DispatchGenericMotionEvent(MotionEvent ev)
+        public int EnumerateGamepads()
         {
-            return _inputHandler.HandleAxisMovement(ev);
+            int[] deviceIds = _inputManager.GetInputDeviceIds();
+            foreach (int deviceId in deviceIds)
+            {
+                InputDevice dev = InputDevice.GetDevice(deviceId);
+                if (IsGamepad(dev))
+                {
+                    if (!_connected_devices.Contains(deviceId))
+                    {
+                        _connected_devices.Add(deviceId);
+                        if (_current_device_id == INVALID_GAMEPAD_INDEX)
+                        {
+                            _current_device_id = deviceId;
+                        }
+                    }
+                }
+            }
+            return _connected_devices.Count;
         }
 
-        public override bool DispatchKeyEvent(KeyEvent e)
+        private bool IsGamepad(InputDevice device)
         {
-            return _inputHandler.HandleButtonPress(e);
+            if ((device.Sources & InputSourceType.Gamepad) == InputSourceType.Gamepad ||
+               (device.Sources & InputSourceType.ClassJoystick) == InputSourceType.Joystick)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        //Get the centered position for the joystick axis
+        private float GetCenteredAxis(MotionEvent e, InputDevice device, Axis axis)
+        {
+            InputDevice.MotionRange range = device.GetMotionRange(axis, e.Source);
+            if (range != null)
+            {
+                float flat = range.Flat;
+                float value = e.GetAxisValue(axis);
+                if (System.Math.Abs(value) > flat)
+                    return value;
+            }
+
+            return 0;
+        }
+
+        public override bool OnGenericMotionEvent(MotionEvent e)
+        {
+            InputDevice device = e.Device;
+            if (device != null && device.Id == _current_device_id)
+            {
+                if (IsGamepad(device))
+                {
+                    /*
+                    for (int i = 0; i < AxesMapping.size; i++)
+                    {
+                        axes[i] = GetCenteredAxis(e, device, AxesMapping.OrdinalValueAxis(i));
+                    }
+                    return true;
+                    */
+                    return true;
+                }
+            }
+            return base.OnGenericMotionEvent(e);
+        }
+
+        public override bool OnKeyDown(Keycode keyCode, KeyEvent e)
+        {
+            InputDevice device = e.Device;
+            if (device != null && device.Id == _current_device_id)
+            {
+                if (IsGamepad(device))
+                {
+                    /*
+                    int index = ButtonMapping.OrdinalValue(keyCode);
+                    if (index >= 0)
+                    {
+                        buttons[index] = 1;
+                    }
+                    return true;
+                    */
+                    return true;
+                }
+            }
+            return base.OnKeyDown(keyCode, e);
+        }
+
+        public override bool OnKeyUp(Keycode keyCode, KeyEvent e)
+        {
+            InputDevice device = e.Device;
+            if (device != null && device.Id == _current_device_id)
+            {
+                if (IsGamepad(device))
+                {
+                    /*
+                    int index = ButtonMapping.OrdinalValue(keyCode);
+                    if (index >= 0)
+                    {
+                        buttons[index] = 0;
+                    }
+                    return true;
+                    */
+                    return true;
+                }
+            }
+            return base.OnKeyUp(keyCode, e);
         }
 
         public void OnInputDeviceAdded(int deviceId)
         {
-            _inputHandler.OnInputDeviceAdded(deviceId);
+            InputDevice dev = _inputManager.GetInputDevice(deviceId);
+            if (!IsGamepad(dev))
+                return;
+
+            else if (_current_device_id == INVALID_GAMEPAD_INDEX)
+            {
+                _current_device_id = deviceId;
+                if (!_connected_devices.Contains(deviceId))
+                    _connected_devices.Add(deviceId);
+            }
         }
 
         public void OnInputDeviceChanged(int deviceId)
         {
-            _inputHandler.OnInputDeviceChanged(deviceId);
+            throw new NotImplementedException("OnInputDeviceChanged");
         }
 
         public void OnInputDeviceRemoved(int deviceId)
         {
-            _inputHandler.OnInputDeviceRemoved(deviceId);
+            if (_connected_devices.Contains(deviceId))
+            {
+                _connected_devices.Remove(deviceId);
+            }
+            if (_current_device_id == deviceId)
+            {
+                _current_device_id = INVALID_GAMEPAD_INDEX;
+            }
         }
 
         /*
