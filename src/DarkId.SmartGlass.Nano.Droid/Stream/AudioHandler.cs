@@ -36,13 +36,13 @@ namespace DarkId.SmartGlass.Nano.Droid
                     .Build(),
                 4096,
                 AudioTrackMode.Stream,
-                sessionId: 0);
+                AudioManager.AudioSessionIdGenerate);
 
             MediaFormat audioFormat = MediaFormat.CreateAudioFormat(
                 mime: MediaFormat.MimetypeAudioAac,
                 sampleRate: sampleRate,
                 channelCount: channels);
-                
+
             audioFormat.SetInteger(MediaFormat.KeyIsAdts, 0);
             audioFormat.SetInteger(MediaFormat.KeyAacProfile, (int)MediaCodecProfileType.Aacobjectlc);
 
@@ -50,7 +50,7 @@ namespace DarkId.SmartGlass.Nano.Droid
                 MediaFormat.MimetypeAudioAac);
 
             // TODO: Remove hardcoding
-            byte profile = (byte)AACProfile.LC;
+            byte profile = (byte)MediaCodecProfileType.Aacobjectlc;
             byte sampleIndex = AacAdtsAssembler.GetSamplingFrequencyIndex(sampleRate);
             byte[] csd0 = new byte[2];
             csd0[0] = (byte)(((byte)profile << 3) | (sampleIndex >> 1));
@@ -117,7 +117,7 @@ namespace DarkId.SmartGlass.Nano.Droid
         {
             Java.Nio.ByteBuffer decodedSample = codec.GetOutputBuffer(index);
 
-            _audioTrack.Write(decodedSample, 0, WriteMode.Blocking);
+            _audioTrack.Write(decodedSample, 4096, WriteMode.NonBlocking);
 
             codec.ReleaseOutputBuffer(index, true);
         }
