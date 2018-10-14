@@ -12,9 +12,9 @@ namespace DarkId.SmartGlass.Nano.Droid
         VideoHandler _video;
         AudioHandler _audio;
 
-        public MediaCoreConsumer(TextureView textureView)
+        public MediaCoreConsumer(Android.Graphics.SurfaceTexture surface)
         {
-            _video = new VideoHandler(textureView);
+            _video = new VideoHandler(surface);
             _audio = new AudioHandler();
             //TODO: Setup dynamically
             _video.SetupVideo(1280, 720, null, null);

@@ -95,6 +95,7 @@
     <Compile Include="Stream\AudioHandler.cs" />
     <Compile Include="Stream\MediaCoreConsumer.cs" />
     <Compile Include="Stream\VideoHandler.cs" />
+    <Compile Include="Stream\InputHandler.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />

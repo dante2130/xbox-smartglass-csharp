@@ -11,7 +11,8 @@ using System.Threading.Tasks;
 
 namespace DarkId.SmartGlass.Nano.Droid
 {
-    [Activity(Label = "xNano", MainLauncher = true, Icon = "@mipmap/icon")]
+    [Activity(Label = "xNano", MainLauncher = true, Icon = "@mipmap/icon",
+              ScreenOrientation = ScreenOrientation.Portrait)]
     public class MainActivity : Activity
     {
         private List<string> _discovered;

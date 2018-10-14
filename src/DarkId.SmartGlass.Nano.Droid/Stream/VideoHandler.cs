@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Android.Graphics;
 using Android.Media;
 using Android.Views;
 using DarkId.SmartGlass.Nano.Consumer;
@@ -10,7 +11,7 @@ namespace DarkId.SmartGlass.Nano.Droid
     public class VideoHandler
         : MediaCodec.Callback, Consumer.IVideoConsumer, IDisposable
     {
-        private readonly TextureView _textureView;
+        private readonly SurfaceTexture _surface;
 
         private Packets.VideoFormat _videoFormat;
         private Queue<Consumer.H264Frame> _videoFrameQueue;
@@ -18,9 +19,9 @@ namespace DarkId.SmartGlass.Nano.Droid
 
         private MediaCodec _videoCodec;
 
-        public VideoHandler(TextureView textureView)
+        public VideoHandler(SurfaceTexture surface)
         {
-            _textureView = textureView;
+            _surface = surface;
 
             _videoFrameQueue = new Queue<Consumer.H264Frame>();
             _videoAssembler = new Consumer.VideoAssembler();
@@ -46,7 +47,7 @@ namespace DarkId.SmartGlass.Nano.Droid
 
             _videoCodec.SetCallback(this);
             _videoCodec.Configure(format: videoFormat,
-                                  surface: new Surface(_textureView.SurfaceTexture),
+                                  surface: new Surface(_surface),
                                   crypto: null,
                                   flags: MediaCodecConfigFlags.None);
 
