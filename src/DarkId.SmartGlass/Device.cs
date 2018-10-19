@@ -56,9 +56,14 @@ namespace DarkId.SmartGlass
             }
         }
 
-        public static async Task<Device> PowerOnAsync(string liveId, int times = 5, int delay = 1000)
+        public static async Task<Device> PowerOnAsync(string liveId, int times = 5, int delay = 1000, string addressOrHostname = string.Empty)
         {
-            using (var messageTransport = new MessageTransport())
+            if(!string.IsNullOrEmpty(addressOrHostname))
+                var messageTransport = new MessageTransport(addressOrHostname)
+            else
+                var messageTransport = new MessageTransport()
+
+            using (messageTransport)
             {
                 var poweronRequestMessage = new PowerOnMessage { LiveId = liveId };
 
